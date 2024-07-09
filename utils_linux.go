@@ -43,6 +43,14 @@ func getDefaultImagePath() string {
 	return filepath.Join(cwd, "checkpoint")
 }
 
+func getDefaultDirtyLogPath() string {
+	cwd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	return filepath.Join(cwd, "dirtylog")
+}
+
 // newProcess returns a new libcontainer Process with the arguments from the
 // spec and stdio from the current process.
 func newProcess(p specs.Process) (*libcontainer.Process, error) {

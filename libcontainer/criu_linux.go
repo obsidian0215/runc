@@ -325,6 +325,8 @@ func (c *Container) Checkpoint(criuOpts *CriuOpts) error {
 		OrphanPtsMaster: proto.Bool(true),
 		AutoDedup:       proto.Bool(criuOpts.AutoDedup),
 		LazyPages:       proto.Bool(criuOpts.LazyPages),
+		DryRun:          proto.Bool(criuOpts.DryRun),
+		UseDirtyLog:     proto.Bool(criuOpts.UseDirtyLog),
 	}
 
 	// if criuOpts.WorkDirectory is not set, criu default is used.
@@ -430,6 +432,18 @@ func (c *Container) Checkpoint(criuOpts *CriuOpts) error {
 		}
 	}
 
+	if criuOpts.DryRun || criuOpts.UseDirtyLog {
+		if err := os.Mkdir(criuOpts.DirtyLogDirectory, 0o700); err != nil && !os.IsExist(err) {
+			return err
+		}
+		dirtyLogDir, err := os.Open(criuOpts.DirtyLogDirectory)
+		if err != nil {
+			return err
+		}
+		defer dirtyLogDir.Close()
+		rpcOpts.DirtyLogDirFd = proto.Int32(int32(dirtyLogDir.Fd()))
+	}
+
 	req := &criurpc.CriuReq{
 		Type: &t,
 		Opts: &rpcOpts,
@@ -456,6 +470,12 @@ func (c *Container) Checkpoint(criuOpts *CriuOpts) error {
 					c.addCriuDumpMount(req, b)
 				}
 			}
+		}
+
+		//dry-run only be available in pre-dump
+		if criuOpts.DryRun {
+			rpcOpts.DryRun = proto.Bool(false)
+			logrus.Info("[OB]Dry-Run will be not enabled without --pre-dump.")
 		}
 
 		if err := c.addMaskPaths(req); err != nil {
