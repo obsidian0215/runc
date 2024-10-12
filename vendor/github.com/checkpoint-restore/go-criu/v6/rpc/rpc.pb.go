@@ -1260,13 +1260,6 @@ func (x *CriuOpts) GetMntnsCompatMode() bool {
 	return false
 }
 
-func (x *CriuOpts) GetDryRun() bool {
-	if x != nil && x.DryRun != nil {
-		return *x.DryRun
-	}
-	return false
-}
-
 func (x *CriuOpts) GetUseDirtyMap() bool {
 	if x != nil && x.UseDirtyMap != nil {
 		return *x.UseDirtyMap
