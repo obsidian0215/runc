@@ -767,9 +767,8 @@ type CriuOpts struct {
 	LsmMountContext      *string                `protobuf:"bytes,63,opt,name=lsm_mount_context,json=lsmMountContext" json:"lsm_mount_context,omitempty"`
 	NetworkLock          *CriuNetworkLockMethod `protobuf:"varint,64,opt,name=network_lock,json=networkLock,enum=CriuNetworkLockMethod,def=1" json:"network_lock,omitempty"`
 	MntnsCompatMode      *bool                  `protobuf:"varint,65,opt,name=mntns_compat_mode,json=mntnsCompatMode" json:"mntns_compat_mode,omitempty"`
-	DryRun               *bool                  `protobuf:"varint,66,opt,name=dry_run,json=dryRun" json:"dry_run,omitempty"`
-	UseDirtyLog          *bool                  `protobuf:"varint,67,opt,name=use_dirty_log,json=useDirtyLog" json:"use_dirty_log,omitempty"`
-	DirtyLogDirFd        *int32                 `protobuf:"varint,68,opt,name=dirty_log_dir_fd,json=dirtyLogDirFd" json:"dirty_log_dir_fd,omitempty"` //	optional bool			check_mounts		= 128;
+	UseDirtyMap          *bool                  `protobuf:"varint,67,opt,name=use_dirty_map,json=UseDirtyMap" json:"use_dirty_map,omitempty"`
+	DirtyMapDirFd        *int32                 `protobuf:"varint,68,opt,name=dirty_nap_dir_fd,json=dirtyMapDirFd" json:"dirty_map_dir_fd,omitempty"` //	optional bool			check_mounts		= 128;
 }
 
 // Default values for CriuOpts fields.
@@ -1268,16 +1267,16 @@ func (x *CriuOpts) GetDryRun() bool {
 	return false
 }
 
-func (x *CriuOpts) GetUseDirtyLog() bool {
-	if x != nil && x.UseDirtyLog != nil {
-		return *x.UseDirtyLog
+func (x *CriuOpts) GetUseDirtyMap() bool {
+	if x != nil && x.UseDirtyMap != nil {
+		return *x.UseDirtyMap
 	}
 	return false
 }
 
-func (x *CriuOpts) GetDirtyLogDirFd() int32 {
-	if x != nil && x.DirtyLogDirFd != nil {
-		return *x.DirtyLogDirFd
+func (x *CriuOpts) GetDirtyMapDirFd() int32 {
+	if x != nil && x.DirtyMapDirFd != nil {
+		return *x.DirtyMapDirFd
 	}
 	return 0
 }

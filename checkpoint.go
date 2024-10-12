@@ -41,9 +41,8 @@ checkpointed.`,
 		cli.StringFlag{Name: "manage-cgroups-mode", Value: "", Usage: "cgroups mode: soft|full|strict|ignore (default: soft)"},
 		cli.StringSliceFlag{Name: "empty-ns", Usage: "create a namespace, but don't restore its properties"},
 		cli.BoolFlag{Name: "auto-dedup", Usage: "enable auto deduplication of memory images"},
-		cli.BoolFlag{Name: "dry-run", Usage: "run a dry dirty log of memory images"},
-		cli.BoolFlag{Name: "use-dirty-log", Usage: "enable dirty log of memory images"},
-		cli.StringFlag{Name: "dirty-log-path", Value: "", Usage: "path for saving criu dirty log files"},
+		cli.BoolFlag{Name: "use-dirty-map", Usage: "enable using of dirty-map images"},
+		cli.StringFlag{Name: "dirty-map-dir", Value: "", Usage: "path for saving dirty-map files"},
 	},
 	Action: func(context *cli.Context) error {
 		if err := checkArgs(context, 1, exactArgs); err != nil {
@@ -113,17 +112,17 @@ func prepareImagePaths(context *cli.Context) (string, string, error) {
 	return imagePath, parentPath, nil
 }
 
-func prepareDirtyLogPath(context *cli.Context) (string, error) {
-	DirtyLogPath := context.String("dirty-log-path")
-	if DirtyLogPath == "" {
-		DirtyLogPath = getDefaultDirtyLogPath()
+func prepareDirtyMapPath(context *cli.Context) (string, error) {
+	DirtyMapPath := context.String("dirty-map-dir")
+	if DirtyMapPath == "" {
+		DirtyMapPath = getDefaultDirtyMapPath()
 	}
 
-	if err := os.MkdirAll(DirtyLogPath, 0o600); err != nil {
+	if err := os.MkdirAll(DirtyMapPath, 0o600); err != nil {
 		return "", err
 	}
 
-	return DirtyLogPath, nil
+	return DirtyMapPath, nil
 }
 
 func criuOptions(context *cli.Context) (*libcontainer.CriuOpts, error) {
@@ -132,7 +131,7 @@ func criuOptions(context *cli.Context) (*libcontainer.CriuOpts, error) {
 		return nil, err
 	}
 
-	dirtyLogPath, err := prepareDirtyLogPath(context)
+	dirtyMapPath, err := prepareDirtyMapPath(context)
 	if err != nil {
 		fatal(err)
 	}
@@ -152,9 +151,8 @@ func criuOptions(context *cli.Context) (*libcontainer.CriuOpts, error) {
 		StatusFd:                context.Int("status-fd"),
 		LsmProfile:              context.String("lsm-profile"),
 		LsmMountContext:         context.String("lsm-mount-context"),
-		DryRun:                  context.Bool("dry-run"),
-		UseDirtyLog:             context.Bool("use-dirty-log"),
-		DirtyLogDirectory:       dirtyLogPath,
+		UseDirtyMap:             context.Bool("use-dirty-map"),
+		DirtyMapDirectory:       dirtyMapPath,
 	}
 
 	// CRIU options below may or may not be set.
