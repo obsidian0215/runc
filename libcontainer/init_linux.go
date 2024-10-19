@@ -259,11 +259,10 @@ func containerInit(t initType, config *initConfig, pipe *syncSocket, consoleSock
 // current processes's environment.
 func populateProcessEnvironment(env []string) error {
 	for _, pair := range env {
-		p := strings.SplitN(pair, "=", 2)
-		if len(p) < 2 {
+		name, val, ok := strings.Cut(pair, "=")
+		if !ok {
 			return errors.New("invalid environment variable: missing '='")
 		}
-		name, val := p[0], p[1]
 		if name == "" {
 			return errors.New("invalid environment variable: name cannot be empty")
 		}
@@ -451,11 +450,11 @@ func syncParentHooks(pipe *syncSocket) error {
 
 // syncParentSeccomp sends the fd associated with the seccomp file descriptor
 // to the parent, and wait for the parent to do pidfd_getfd() to grab a copy.
-func syncParentSeccomp(pipe *syncSocket, seccompFd *os.File) error {
-	if seccompFd == nil {
+func syncParentSeccomp(pipe *syncSocket, seccompFd int) error {
+	if seccompFd == -1 {
 		return nil
 	}
-	defer seccompFd.Close()
+	defer unix.Close(seccompFd)
 
 	// Tell parent to grab our fd.
 	//
@@ -466,7 +465,7 @@ func syncParentSeccomp(pipe *syncSocket, seccompFd *os.File) error {
 	// before the parent gets the file descriptor would deadlock "runc init" if
 	// we allowed it for SCMP_ACT_NOTIFY). See seccomp.InitSeccomp() for more
 	// details.
-	if err := writeSyncArg(pipe, procSeccomp, seccompFd.Fd()); err != nil {
+	if err := writeSyncArg(pipe, procSeccomp, seccompFd); err != nil {
 		return err
 	}
 	// Wait for parent to tell us they've grabbed the seccompfd.
@@ -697,7 +696,7 @@ func setupPersonality(config *configs.Config) error {
 // manager's cgroups sending the signal s to them.
 func signalAllProcesses(m cgroups.Manager, s unix.Signal) error {
 	if !m.Exists() {
-		return ErrNotRunning
+		return ErrCgroupNotExist
 	}
 	// Use cgroup.kill, if available.
 	if s == unix.SIGKILL {

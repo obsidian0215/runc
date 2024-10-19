@@ -6,6 +6,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0-rc.3] - 2024-09-02
+
+> The supreme happiness of life is the conviction that we are loved.
+
+### Security
+
+ * Fix [CVE-2024-45310][cve-2024-45310], a low-severity attack that allowed
+   maliciously configured containers to create empty files and directories on
+   the host.
+
+[cve-2024-45310]: https://github.com/opencontainers/runc/security/advisories/GHSA-jfvp-7x6p-h2pv
+
+### Added
+
+ * Document build prerequisites for different platforms. (#4353)
+
+### Fixed
+
+ * Try to delete exec fifo file when failure in creation. (#4319)
+ * Revert "libcontainer: seccomp: pass around *os.File for notifyfd". (#4337)
+ * Fix link to gvariant documentation in systemd docs. (#4369)
+
+### Changed
+
+ * Remove pre-go1.17 build-tags. (#4329)
+ * libct/userns: assorted (godoc) improvements. (#4330)
+ * libct/userns: split userns detection from internal userns code. (#4331)
+ * rootfs: consolidate mountpoint creation logic. (#4359)
+ * Add Go 1.23, drop 1.21. (#4360)
+ * Revert "allow overriding VERSION value in Makefile" and add `EXTRA_VERSION`.
+   (#4370)
+ * Mv contrib/cmd tests/cmd (except memfd-bind). (#4377)
+ * Makefile: Don't read COMMIT, BUILDTAGS, `EXTRA_BUILDTAGS` from env vars.
+   (#4380)
+
 ## [1.2.0-rc.2] - 2024-06-26
 
 > TRUE or FALSE, it's a problem!
@@ -222,6 +257,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    obsoleted by more generic container hooks. (#3350)
 
 [cve-2019-5736]: https://github.com/advisories/GHSA-gxmr-w5mj-v8hh
+
+## [1.1.14] - 2024-09-03
+
+> 年を取っていいことは、驚かなくなることね。
+
+### Security
+
+ * Fix [CVE-2024-45310][cve-2024-45310], a low-severity attack that allowed
+   maliciously configured containers to create empty files and directories on
+   the host.
+
+[cve-2024-45310]: https://github.com/opencontainers/runc/security/advisories/GHSA-jfvp-7x6p-h2pv
+
+### Added
+
+ * Add support for Go 1.23. (#4360, #4372)
+
+### Fixed
+
+ * Revert "allow overriding VERSION value in Makefile" and add `EXTRA_VERSION`.
+   (#4370, #4382)
+ * rootfs: consolidate mountpoint creation logic. (#4359)
 
 ## [1.1.13] - 2024-06-13
 
@@ -745,7 +802,7 @@ implementation (libcontainer) is *not* covered by this policy.
    cgroups at all during `runc update`). (#2994)
 
 <!-- minor releases -->
-[Unreleased]: https://github.com/opencontainers/runc/compare/v1.2.0-rc.2...HEAD
+[Unreleased]: https://github.com/opencontainers/runc/compare/v1.2.0-rc.3...HEAD
 [1.1.0]: https://github.com/opencontainers/runc/compare/v1.1.0-rc.1...v1.1.0
 [1.0.0]: https://github.com/opencontainers/runc/releases/tag/v1.0.0
 
@@ -756,7 +813,8 @@ implementation (libcontainer) is *not* covered by this policy.
 [1.0.1]: https://github.com/opencontainers/runc/compare/v1.0.0...v1.0.1
 
 <!-- 1.1.z patch releases -->
-[Unreleased 1.1.z]: https://github.com/opencontainers/runc/compare/v1.1.13...release-1.1
+[Unreleased 1.1.z]: https://github.com/opencontainers/runc/compare/v1.1.14...release-1.1
+[1.1.14]: https://github.com/opencontainers/runc/compare/v1.1.13...v1.1.14
 [1.1.13]: https://github.com/opencontainers/runc/compare/v1.1.12...v1.1.13
 [1.1.12]: https://github.com/opencontainers/runc/compare/v1.1.11...v1.1.12
 [1.1.11]: https://github.com/opencontainers/runc/compare/v1.1.10...v1.1.11
@@ -773,5 +831,6 @@ implementation (libcontainer) is *not* covered by this policy.
 [1.1.0-rc.1]: https://github.com/opencontainers/runc/compare/v1.0.0...v1.1.0-rc.1
 
 <!-- 1.2.z patch releases -->
+[1.2.0-rc.3]: https://github.com/opencontainers/runc/compare/v1.2.0-rc.2...v1.2.0-rc.3
 [1.2.0-rc.2]: https://github.com/opencontainers/runc/compare/v1.2.0-rc.1...v1.2.0-rc.2
 [1.2.0-rc.1]: https://github.com/opencontainers/runc/compare/v1.1.0...v1.2.0-rc.1

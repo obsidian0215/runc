@@ -234,7 +234,12 @@ func getProcess(context *cli.Context, bundle string) (*specs.Process, error) {
 			p.Capabilities.Bounding = append(p.Capabilities.Bounding, c)
 			p.Capabilities.Effective = append(p.Capabilities.Effective, c)
 			p.Capabilities.Permitted = append(p.Capabilities.Permitted, c)
-			p.Capabilities.Ambient = append(p.Capabilities.Ambient, c)
+			// Since ambient capabilities can't be set without inherritable,
+			// and runc exec --cap don't set inheritable, let's only set
+			// ambient if we already have some inheritable bits set from spec.
+			if p.Capabilities.Inheritable != nil {
+				p.Capabilities.Ambient = append(p.Capabilities.Ambient, c)
+			}
 		}
 	}
 	// append the passed env variables
@@ -247,15 +252,15 @@ func getProcess(context *cli.Context, bundle string) (*specs.Process, error) {
 	}
 	// Override the user, if passed.
 	if user := context.String("user"); user != "" {
-		u := strings.SplitN(user, ":", 2)
-		if len(u) > 1 {
-			gid, err := strconv.Atoi(u[1])
+		uids, gids, ok := strings.Cut(user, ":")
+		if ok {
+			gid, err := strconv.Atoi(gids)
 			if err != nil {
 				return nil, fmt.Errorf("bad gid: %w", err)
 			}
 			p.User.GID = uint32(gid)
 		}
-		uid, err := strconv.Atoi(u[0])
+		uid, err := strconv.Atoi(uids)
 		if err != nil {
 			return nil, fmt.Errorf("bad uid: %w", err)
 		}

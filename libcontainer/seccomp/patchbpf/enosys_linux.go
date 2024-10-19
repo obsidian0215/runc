@@ -18,7 +18,6 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/opencontainers/runc/libcontainer/configs"
-	"github.com/opencontainers/runc/libcontainer/utils"
 )
 
 // #cgo pkg-config: libseccomp
@@ -110,7 +109,7 @@ func parseProgram(rdr io.Reader) ([]bpf.RawInstruction, error) {
 		// Read the next instruction. We have to use NativeEndian because
 		// seccomp_export_bpf outputs the program in *host* endian-ness.
 		var insn unix.SockFilter
-		if err := binary.Read(rdr, utils.NativeEndian, &insn); err != nil {
+		if err := binary.Read(rdr, binary.NativeEndian, &insn); err != nil {
 			if errors.Is(err, io.EOF) {
 				// Parsing complete.
 				break
@@ -704,17 +703,17 @@ func sysSeccompSetFilter(flags uint, filter []unix.SockFilter) (fd int, err erro
 // patches said filter to handle -ENOSYS in a much nicer manner than the
 // default libseccomp default action behaviour, and loads the patched filter
 // into the kernel for the current process.
-func PatchAndLoad(config *configs.Seccomp, filter *libseccomp.ScmpFilter) (*os.File, error) {
+func PatchAndLoad(config *configs.Seccomp, filter *libseccomp.ScmpFilter) (int, error) {
 	// Generate a patched filter.
 	fprog, err := enosysPatchFilter(config, filter)
 	if err != nil {
-		return nil, fmt.Errorf("error patching filter: %w", err)
+		return -1, fmt.Errorf("error patching filter: %w", err)
 	}
 
 	// Get the set of libseccomp flags set.
 	seccompFlags, noNewPrivs, err := filterFlags(config, filter)
 	if err != nil {
-		return nil, fmt.Errorf("unable to fetch seccomp filter flags: %w", err)
+		return -1, fmt.Errorf("unable to fetch seccomp filter flags: %w", err)
 	}
 
 	// Set no_new_privs if it was requested, though in runc we handle
@@ -722,14 +721,15 @@ func PatchAndLoad(config *configs.Seccomp, filter *libseccomp.ScmpFilter) (*os.F
 	if noNewPrivs {
 		logrus.Warnf("potentially misconfigured filter -- setting no_new_privs in seccomp path")
 		if err := unix.Prctl(unix.PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0); err != nil {
-			return nil, fmt.Errorf("error enabling no_new_privs bit: %w", err)
+			return -1, fmt.Errorf("error enabling no_new_privs bit: %w", err)
 		}
 	}
 
 	// Finally, load the filter.
 	fd, err := sysSeccompSetFilter(seccompFlags, fprog)
 	if err != nil {
-		return nil, fmt.Errorf("error loading seccomp filter: %w", err)
+		return -1, fmt.Errorf("error loading seccomp filter: %w", err)
 	}
-	return os.NewFile(uintptr(fd), "[seccomp filter]"), nil
+
+	return fd, nil
 }

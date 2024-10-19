@@ -40,7 +40,7 @@ jobs:
           sudo apt -qy install libseccomp-dev
       - uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.57
+          version: v1.60
       # Extra linters, only checking new code from a pull request.
       - name: lint-extra
         if: github.event_name == 'pull_request'
@@ -234,3 +234,22 @@ jobs:
         cd tests/integration
         ./bootstrap-get-images.sh > get-images.sh
         git diff --exit-code
+
+  all-done:
+    needs:
+      - cfmt
+      - codespell
+      - commit
+      - compile-buildtags
+      - deps
+      - get-images
+      - go-fix
+      - keyring
+      - lint
+      - release
+      - shellcheck
+      - shfmt
+      - space-at-eol
+    runs-on: ubuntu-24.04
+    steps:
+    - run: echo "All jobs completed"

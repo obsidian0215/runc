@@ -140,16 +140,11 @@ func (p *setnsProcess) start() (retErr error) {
 		return fmt.Errorf("error starting setns process: %w", err)
 	}
 
-	waitInit := initWaiter(p.comm.initSockParent)
 	defer func() {
 		if retErr != nil {
 			if newOom, err := p.manager.OOMKillCount(); err == nil && newOom != oom {
 				// Someone in this cgroup was killed, this _might_ be us.
 				retErr = fmt.Errorf("%w (possibly OOM-killed)", retErr)
-			}
-			werr := <-waitInit
-			if werr != nil {
-				logrus.WithError(werr).Warn()
 			}
 			err := ignoreTerminateErrors(p.terminate())
 			if err != nil {
@@ -162,10 +157,6 @@ func (p *setnsProcess) start() (retErr error) {
 		if _, err := io.Copy(p.comm.initSockParent, p.bootstrapData); err != nil {
 			return fmt.Errorf("error copying bootstrap data to pipe: %w", err)
 		}
-	}
-	err = <-waitInit
-	if err != nil {
-		return err
 	}
 	if err := p.execSetns(); err != nil {
 		return fmt.Errorf("error executing setns process: %w", err)
@@ -536,7 +527,6 @@ func (p *initProcess) start() (retErr error) {
 		return fmt.Errorf("unable to start init: %w", err)
 	}
 
-	waitInit := initWaiter(p.comm.initSockParent)
 	defer func() {
 		if retErr != nil {
 			// Find out if init is killed by the kernel's OOM killer.
@@ -559,11 +549,6 @@ func (p *initProcess) start() (retErr error) {
 				}
 			}
 
-			werr := <-waitInit
-			if werr != nil {
-				logrus.WithError(werr).Warn()
-			}
-
 			// Terminate the process to ensure we can remove cgroups.
 			if err := ignoreTerminateErrors(p.terminate()); err != nil {
 				logrus.WithError(err).Warn("unable to terminate initProcess")
@@ -580,7 +565,18 @@ func (p *initProcess) start() (retErr error) {
 	// cgroup. We don't need to worry about not doing this and not being root
 	// because we'd be using the rootless cgroup manager in that case.
 	if err := p.manager.Apply(p.pid()); err != nil {
-		return fmt.Errorf("unable to apply cgroup configuration: %w", err)
+		if errors.Is(err, cgroups.ErrRootless) {
+			// ErrRootless is to be ignored except when
+			// the container doesn't have private pidns.
+			if !p.config.Config.Namespaces.IsPrivate(configs.NEWPID) {
+				// TODO: make this an error in runc 1.3.
+				logrus.Warn("Creating a rootless container with no cgroup and no private pid namespace. " +
+					"Such configuration is strongly discouraged (as it is impossible to properly kill all container's processes) " +
+					"and will result in an error in a future runc version.")
+			}
+		} else {
+			return fmt.Errorf("unable to apply cgroup configuration: %w", err)
+		}
 	}
 	if p.intelRdtManager != nil {
 		if err := p.intelRdtManager.Apply(p.pid()); err != nil {
@@ -589,10 +585,6 @@ func (p *initProcess) start() (retErr error) {
 	}
 	if _, err := io.Copy(p.comm.initSockParent, p.bootstrapData); err != nil {
 		return fmt.Errorf("can't copy bootstrap data to pipe: %w", err)
-	}
-	err = <-waitInit
-	if err != nil {
-		return err
 	}
 
 	childPid, err := p.getChildPid()
@@ -962,31 +954,6 @@ func (p *Process) InitializeIO(rootuid, rootgid int) (i *IO, err error) {
 		}
 	}
 	return i, nil
-}
-
-// initWaiter returns a channel to wait on for making sure
-// runc init has finished the initial setup.
-func initWaiter(r io.Reader) chan error {
-	ch := make(chan error, 1)
-	go func() {
-		defer close(ch)
-
-		inited := make([]byte, 1)
-		n, err := r.Read(inited)
-		if err == nil {
-			if n < 1 {
-				err = errors.New("short read")
-			} else if inited[0] != 0 {
-				err = fmt.Errorf("unexpected %d != 0", inited[0])
-			} else {
-				ch <- nil
-				return
-			}
-		}
-		ch <- fmt.Errorf("waiting for init preliminary setup: %w", err)
-	}()
-
-	return ch
 }
 
 func setIOPriority(ioprio *configs.IOPriority) error {

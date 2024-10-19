@@ -99,7 +99,7 @@ func (c *Container) Status() (Status, error) {
 func (c *Container) State() (*State, error) {
 	c.m.Lock()
 	defer c.m.Unlock()
-	return c.currentState()
+	return c.currentState(), nil
 }
 
 // OCIState returns the current container's state information.
@@ -388,11 +388,26 @@ func (c *Container) Signal(s os.Signal) error {
 	// leftover processes. Handle this special case here.
 	if s == unix.SIGKILL && !c.config.Namespaces.IsPrivate(configs.NEWPID) {
 		if err := signalAllProcesses(c.cgroupManager, unix.SIGKILL); err != nil {
+			if c.config.RootlessCgroups { // may not have an access to cgroup
+				logrus.WithError(err).Warn("failed to kill all processes, possibly due to lack of cgroup (Hint: enable cgroup v2 delegation)")
+				// Some processes may leak when cgroup is not delegated
+				// https://github.com/opencontainers/runc/pull/4395#pullrequestreview-2291179652
+				return c.signal(s)
+			}
+			// For not rootless container, if there is no init process and no cgroup,
+			// it means that the container is not running.
+			if errors.Is(err, ErrCgroupNotExist) && !c.hasInit() {
+				err = ErrNotRunning
+			}
 			return fmt.Errorf("unable to kill all processes: %w", err)
 		}
 		return nil
 	}
 
+	return c.signal(s)
+}
+
+func (c *Container) signal(s os.Signal) error {
 	// To avoid a PID reuse attack, don't kill non-running container.
 	if !c.hasInit() {
 		return ErrNotRunning
@@ -531,7 +546,7 @@ func (c *Container) newParentProcess(p *Process) (parentProcess, error) {
 				logrus.Debug("runc-dmz: using runc-dmz") // used for tests
 			} else if errors.Is(err, dmz.ErrNoDmzBinary) {
 				logrus.Debug("runc-dmz binary not embedded in runc binary, falling back to /proc/self/exe clone")
-			} else if err != nil {
+			} else {
 				return nil, fmt.Errorf("failed to create runc-dmz binary clone: %w", err)
 			}
 		} else {
@@ -666,10 +681,7 @@ func (c *Container) newInitProcess(p *Process, cmd *exec.Cmd, comm *processComm)
 
 func (c *Container) newSetnsProcess(p *Process, cmd *exec.Cmd, comm *processComm) (*setnsProcess, error) {
 	cmd.Env = append(cmd.Env, "_LIBCONTAINER_INITTYPE="+string(initSetns))
-	state, err := c.currentState()
-	if err != nil {
-		return nil, fmt.Errorf("unable to get container state: %w", err)
-	}
+	state := c.currentState()
 	// for setns process, we don't have to set cloneflags as the process namespaces
 	// will only be set via setns syscall
 	data, err := c.bootstrapData(0, state.NamespacePaths)
@@ -847,12 +859,8 @@ func (c *Container) updateState(process parentProcess) (*State, error) {
 	if process != nil {
 		c.initProcess = process
 	}
-	state, err := c.currentState()
-	if err != nil {
-		return nil, err
-	}
-	err = c.saveState(state)
-	if err != nil {
+	state := c.currentState()
+	if err := c.saveState(state); err != nil {
 		return nil, err
 	}
 	return state, nil
@@ -938,7 +946,7 @@ func (c *Container) isPaused() (bool, error) {
 	return state == configs.Frozen, nil
 }
 
-func (c *Container) currentState() (*State, error) {
+func (c *Container) currentState() *State {
 	var (
 		startTime           uint64
 		externalDescriptors []string
@@ -982,7 +990,7 @@ func (c *Container) currentState() (*State, error) {
 			}
 		}
 	}
-	return state, nil
+	return state
 }
 
 func (c *Container) currentOCIState() (*specs.State, error) {
