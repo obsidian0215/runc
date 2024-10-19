@@ -768,7 +768,7 @@ type CriuOpts struct {
 	NetworkLock          *CriuNetworkLockMethod `protobuf:"varint,64,opt,name=network_lock,json=networkLock,enum=CriuNetworkLockMethod,def=1" json:"network_lock,omitempty"`
 	MntnsCompatMode      *bool                  `protobuf:"varint,65,opt,name=mntns_compat_mode,json=mntnsCompatMode" json:"mntns_compat_mode,omitempty"`
 	UseDirtyMap          *bool                  `protobuf:"varint,67,opt,name=use_dirty_map,json=UseDirtyMap" json:"use_dirty_map,omitempty"`
-	DirtyMapDirFd        *int32                 `protobuf:"varint,68,opt,name=dirty_nap_dir_fd,json=dirtyMapDirFd" json:"dirty_map_dir_fd,omitempty"` //	optional bool			check_mounts		= 128;
+	DirtyMapDirFd        *int32                 `protobuf:"varint,68,opt,name=dirty_map_dir_fd,json=dirtyMapDirFd" json:"dirty_map_dir_fd,omitempty"` //	optional bool			check_mounts		= 128;
 }
 
 // Default values for CriuOpts fields.
