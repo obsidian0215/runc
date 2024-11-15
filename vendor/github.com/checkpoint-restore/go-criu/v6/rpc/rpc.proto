@@ -61,6 +61,7 @@ enum criu_pre_dump_mode {
 
 message criu_opts {
 	required int32			images_dir_fd	= 1;
+	optional string			images_dir	= 68; /* used only if images_dir_fd == -1 */
 	optional int32			pid		= 2; /* if not set on dump, will dump requesting process */
 
 	optional bool			leave_running	= 3;
@@ -145,6 +146,7 @@ message criu_opts {
 	optional bool			log_to_stderr		= 71;
 	optional bool           use_dirty_map       = 72;
 	optional int32          dirty_map_dir_fd    = 73;
+	optional string			dirty_map_dir		= 74; /* used only if dirty_map_dir_fd == -1 */
 /*	optional bool			check_mounts		= 128;	*/
 }
 

@@ -301,15 +301,20 @@ func (c *Container) Checkpoint(criuOpts *CriuOpts) error {
 		return err
 	}
 
+	imagedirfd := int32(-1)
 	logDir := criuOpts.ImagesDirectory
 	imageDir, err := os.Open(criuOpts.ImagesDirectory)
 	if err != nil {
-		return err
+		logrus.Errorf("Can't open images directory now: %s, try to open in CRIU", err)
+		// return err
+	} else {
+		imagedirfd = int32(imageDir.Fd())
 	}
 	defer imageDir.Close()
 
 	rpcOpts := criurpc.CriuOpts{
-		ImagesDirFd:     proto.Int32(int32(imageDir.Fd())),
+		ImagesDirFd:     proto.Int32(imagedirfd),
+		ImagesDir:       proto.String(criuOpts.ImagesDirectory),
 		LogLevel:        proto.Int32(4),
 		LogFile:         proto.String(logFile),
 		Root:            proto.String(c.config.Rootfs),
@@ -330,16 +335,23 @@ func (c *Container) Checkpoint(criuOpts *CriuOpts) error {
 
 	// if criuOpts.WorkDirectory is not set, criu default is used.
 	if criuOpts.WorkDirectory != "" {
+		workdirfd := int32(-1)
 		if err := os.Mkdir(criuOpts.WorkDirectory, 0o700); err != nil && !os.IsExist(err) {
-			return err
+			logrus.Errorf("Can't create work directory: %s, will reuse images directory", err)
+			criuOpts.WorkDirectory = criuOpts.ImagesDirectory
+			// return err
+		} else {
+			workDir, err := os.Open(criuOpts.WorkDirectory)
+			if err != nil {
+				logrus.Errorf("Can't open work directory: %s, will reuse images directory", err)
+				criuOpts.WorkDirectory = criuOpts.ImagesDirectory
+			} else {
+				defer workDir.Close()
+				workdirfd = int32(workDir.Fd())
+				logDir = criuOpts.WorkDirectory
+			}
 		}
-		workDir, err := os.Open(criuOpts.WorkDirectory)
-		if err != nil {
-			return err
-		}
-		defer workDir.Close()
-		rpcOpts.WorkDirFd = proto.Int32(int32(workDir.Fd()))
-		logDir = criuOpts.WorkDirectory
+		rpcOpts.WorkDirFd = proto.Int32(workdirfd)
 	}
 
 	c.handleCriuConfigurationFile(&rpcOpts)
@@ -431,16 +443,21 @@ func (c *Container) Checkpoint(criuOpts *CriuOpts) error {
 		}
 	}
 
-	if  criuOpts.UseDirtyMap {
+	if criuOpts.UseDirtyMap {
 		if err := os.Mkdir(criuOpts.DirtyMapDirectory, 0o700); err != nil && !os.IsExist(err) {
 			return err
 		}
+		dirtymapfd := int32(-1)
 		dirtyMapDir, err := os.Open(criuOpts.DirtyMapDirectory)
+		rpcOpts.DirtyMapDir = criuOpts.DirtyMapDirectory
 		if err != nil {
-			return err
+			logrus.Errorf("Can't open dirty-map directory now: %s, try to open in CRIU", err)
+			// return err
+		} else {
+			defer dirtyMapDir.Close()
+			dirtymapfd = int32(dirtyMapDir.Fd())
 		}
-		defer dirtyMapDir.Close()
-		rpcOpts.DirtyMapDirFd = proto.Int32(int32(dirtyMapDir.Fd()))
+		rpcOpts.DirtyMapDirFd = proto.Int32(dirtymapfd)
 	}
 
 	req := &criurpc.CriuReq{
