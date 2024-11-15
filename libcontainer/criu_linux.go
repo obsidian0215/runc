@@ -449,7 +449,7 @@ func (c *Container) Checkpoint(criuOpts *CriuOpts) error {
 		}
 		dirtymapfd := int32(-1)
 		dirtyMapDir, err := os.Open(criuOpts.DirtyMapDirectory)
-		rpcOpts.DirtyMapDir = criuOpts.DirtyMapDirectory
+		rpcOpts.DirtyMapDir = proto.String(criuOpts.DirtyMapDirectory)
 		if err != nil {
 			logrus.Errorf("Can't open dirty-map directory now: %s, try to open in CRIU", err)
 			// return err
