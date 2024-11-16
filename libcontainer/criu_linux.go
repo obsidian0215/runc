@@ -447,17 +447,17 @@ func (c *Container) Checkpoint(criuOpts *CriuOpts) error {
 		if err := os.Mkdir(criuOpts.DirtyMapDirectory, 0o700); err != nil && !os.IsExist(err) {
 			return err
 		}
-		dirtymapfd := int32(-1)
-		dirtyMapDir, err := os.Open(criuOpts.DirtyMapDirectory)
+		// dirtymapfd := int32(-1)
+		// dirtyMapDir, err := os.Open(criuOpts.DirtyMapDirectory)
 		rpcOpts.DirtyMapDir = proto.String(criuOpts.DirtyMapDirectory)
-		if err != nil {
-			logrus.Errorf("Can't open dirty-map directory now: %s, try to open in CRIU", err)
-			// return err
-		} else {
-			defer dirtyMapDir.Close()
-			dirtymapfd = int32(dirtyMapDir.Fd())
-		}
-		rpcOpts.DirtyMapDirFd = proto.Int32(dirtymapfd)
+		// if err != nil {
+		// 	logrus.Errorf("Can't open dirty-map directory now: %s, try to open in CRIU", err)
+		// 	// return err
+		// } else {
+		// 	defer dirtyMapDir.Close()
+		// 	dirtymapfd = int32(dirtyMapDir.Fd())
+		// }
+		// rpcOpts.DirtyMapDirFd = proto.Int32(dirtymapfd)
 	}
 
 	req := &criurpc.CriuReq{
