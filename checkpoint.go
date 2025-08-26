@@ -44,6 +44,7 @@ checkpointed.`,
 		cli.BoolFlag{Name: "auto-dedup", Usage: "enable auto deduplication of memory images"},
 		cli.BoolFlag{Name: "use-dirty-map", Usage: "enable using of dirty-map images"},
 		cli.StringFlag{Name: "dirty-map-dir", Value: "", Usage: "path for saving dirty-map files"},
+		cli.BoolFlag{Name: "compress", Usage: "enable compression of memory images"},
 	},
 	Action: func(context *cli.Context) error {
 		if err := checkArgs(context, 1, exactArgs); err != nil {
@@ -154,6 +155,7 @@ func criuOptions(context *cli.Context) (*libcontainer.CriuOpts, error) {
 		LsmMountContext:         context.String("lsm-mount-context"),
 		UseDirtyMap:             context.Bool("use-dirty-map"),
 		DirtyMapDirectory:       dirtyMapPath,
+		Compress:                context.Bool("compress"),
 	}
 
 	// CRIU options below may or may not be set.

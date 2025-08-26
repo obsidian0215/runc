@@ -31,6 +31,7 @@ type CriuOpts struct {
 	StatusFd                int                // fd for feedback when lazy server is ready
 	LsmProfile              string             // LSM profile used to restore the container
 	LsmMountContext         string             // LSM mount context value to use during restore
-	UseDirtyMap             bool               // do criu dump/pre-dump with dirty-map
+	UseDirtyMap             bool               // do dump/pre-dump with dirty-map
 	DirtyMapDirectory       string             // directory for storing dirty-map files
+	Compress                bool               // enable memory compression in dump/pre-dump
 }

@@ -331,6 +331,7 @@ func (c *Container) Checkpoint(criuOpts *CriuOpts) error {
 		AutoDedup:       proto.Bool(criuOpts.AutoDedup),
 		LazyPages:       proto.Bool(criuOpts.LazyPages),
 		UseDirtyMap:     proto.Bool(criuOpts.UseDirtyMap),
+		Compress:        proto.Bool(criuOpts.Compress),
 	}
 
 	// if criuOpts.WorkDirectory is not set, criu default is used.
